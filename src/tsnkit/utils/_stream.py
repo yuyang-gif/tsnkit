@@ -6,6 +6,7 @@ Created:  2023-10-08T06:14:04.079Z
 """
 
 import copy
+import string
 from typing import Dict, Iterator, List, Optional, Tuple, Union
 from ._network import Node, Link, Path, load_network, FlexLink, FlexNode
 from ._common import _interface
@@ -17,17 +18,18 @@ import warnings
 
 
 def load_stream(path: str) -> "StreamSet":
-    stream_set = StreamSet()
-
+    stream_set = StreamSet() # 概率流建模存储
     try:
-        stream_df = pd.read_csv(path)  ## id,src,dst,size,period,deadline,jitter
+        stream_df = pd.read_csv(path)  ## id,src,dst,size,period,deadline,jitter,pro,type,shareOrET,ot
     except FileNotFoundError:
         raise Exception("Stream file not found")
 
-    if stream_df.shape[1] != 7:
+    if stream_df.shape[1] != 11:
         raise Exception("Invalid stream file format")
     if stream_df.shape[0] == 0:
         raise Exception("Empty stream file")
+
+    count = 0 #迭代计算流id
 
     for i, row in stream_df.iterrows():
         if row["dst"][0] + row["dst"][-1] != "[]":
@@ -41,13 +43,57 @@ def load_stream(path: str) -> "StreamSet":
                 row["period"],
                 row["deadline"],
                 row["jitter"],
+                row["pro"],
+                row["s_type"],
+                row["shareOrET"],
+                row["ot"],
             )
         )
-    stream_set._lcm = np.lcm.reduce([stream._period for stream in stream_set._streams])
-
+    for s in stream_set:
+        print(s)
+    stream_set1 = StreamSet()
+    for s in stream_set:
+        if s.s_type == "Prob":
+            for i in range(0,int(s.period/10000)):
+                stream_set1._streams.append(
+                    Stream(
+                    count,
+                    s.src,
+                    [s.dst],
+                    s.size,
+                    s.period,
+                    s.deadline,
+                    s.jitter,
+                    s.pro,
+                    s.s_type,
+                    str(s._id),
+                    s.ot+i*10000,
+                )
+                )
+                count += 1
+        else:
+            stream_set1._streams.append(
+                Stream(
+                    count,
+                    s.src,
+                    [s.dst],
+                    s.size,
+                    s.period,
+                    s.deadline,
+                    s.jitter,
+                    s.pro,
+                    s.s_type,
+                    s.shareOrET,
+                    s.ot,
+                )
+            )
+            count += 1
+    for s in stream_set1:
+        print(s)
+    stream_set1._lcm = np.lcm.reduce([stream._period for stream in stream_set1._streams])
     ## Sort streams by its ID
-    stream_set._streams.sort(key=lambda x: x._id, reverse=False)
-    return stream_set
+    stream_set1._streams.sort(key=lambda x: x._id, reverse=False)
+    return stream_set1
 
 
 class Stream(int):
@@ -80,23 +126,36 @@ class Stream(int):
 
     def __init__(
         self,
-        id: int,
+        id: string,
         src: FlexNode,
         dst: List[FlexNode],
         size: int,
         period: int,
         deadline: int,
         jitter: int,
+        pro: int,
+        s_type: string,
+        shareOrET: string,
+        ot: int,
     ) -> None:
-        self._id = int(id)
+        self._id = id
         self._src = src
         self._dst = dst[0]
         self._dst_mul = dst
-        self._size = int(np.ceil(int(size) / T_SLOT))
-        self._period = int(np.ceil(int(period) / T_SLOT))
-        self._deadline = int(np.ceil(int(deadline) / T_SLOT))
-        self._jitter = int(np.ceil(int(jitter) / T_SLOT))
+        # self._size = int(np.ceil(int(size) / T_SLOT))
+        # self._period = int(np.ceil(int(period) / T_SLOT))
+        # self._deadline = int(np.ceil(int(deadline) / T_SLOT))
+        # self._jitter = int(np.ceil(int(jitter) / T_SLOT))
+        self._size = size
+        self._period = period
+        self._deadline = deadline
+        self._jitter =jitter
 
+        self._pro = int(pro)
+        self._s_type = s_type
+        self._shareOrET = shareOrET
+        self._ot = int(np.ceil(int(ot) / T_SLOT))
+        self._ot = ot
         self._routing_path: Optional[Path] = None
         self._t_trans: Optional[int] = None  ## [NOTE]: Only use for uniform link rate
 
@@ -108,6 +167,10 @@ class Stream(int):
     period: int = _interface("period")
     deadline: int = _interface("deadline")
     jitter: int = _interface("jitter")
+    pro: int = _interface("pro")
+    s_type: string = _interface("s_type")
+    shareOrET: string = _interface("shareOrET")
+    ot: int = _interface("ot")
 
     @property
     def t_trans(self) -> int:
@@ -309,9 +372,9 @@ class StreamSet:
         if not self.is_route_valid(stream2):
             raise Exception("stream2: Route not set")
         return list(
-            set(self._streams[int(stream1)].links)
-            & set(self._streams[int(stream2)].links)
-        )
+            set(self._streams[int(stream1)].links)  # {(0, 1), (2, 0), (1, 4)}
+            & set(self._streams[int(stream2)].links) # {(0, 1), (1, 5), (3, 0)}
+        ) # [(0, 1)]
 
     def get_streams_on_link(self, link: FlexLink) -> List[Stream]:
         if all([self.is_route_valid(stream) for stream in self._streams]):
@@ -320,9 +383,9 @@ class StreamSet:
             raise Exception("Route not set for all streams")
 
     def get_pairs(self, permute: bool = False) -> List[Tuple[Stream, Stream]]:
-        if permute:
+        if permute: # 序列变化
             return [(i, j) for i in self._streams for j in self._streams if i != j]
-        else:
+        else: #序列不变
             return [(i, j) for i in self._streams for j in self._streams if i < j]
 
     def get_pairs_on_link(
@@ -497,3 +560,4 @@ if __name__ == "__main__":
 
     ## Test use stream as index
     assert [1, 2, 3, 4][stream_set[0]] == 1, "Wrong stream index"
+"""  """
