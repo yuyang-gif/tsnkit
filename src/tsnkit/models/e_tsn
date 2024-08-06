@@ -1,8 +1,8 @@
 """
-Author: Chuanyu (skewcy@gmail.com)
-e_tsn.py (c) 2023
+Author: YuYangyang (yuyangyang2023110770@gmail.com)
+e_tsn.py (c) 2024
 Desc: description
-Created:  2023-10-11T01:17:57.050Z
+Created:  2024-08-05
 """
 
 from typing import Dict
@@ -130,7 +130,7 @@ class e_tsn:
                 )
                 #概率流的调度时间大于其发生时间
                 if s.s_type == "Prob":
-                    var[s][l]["phi"] >= s.ot
+                    solver.add(var[s][l]["phi"] >= s.ot)
 
     # 相邻链路约束
     @staticmethod
@@ -150,7 +150,7 @@ class e_tsn:
     def add_delay_const(solver: z3.Solver, var: VarDict) -> None:
         for s in var.keys():
             if s.s_type == "Prob": # 时延约束从0开始
-                s.ot + s.deadline >= var[s][s.last_link]["phi"]+ var[s][s.last_link]["trans"] + s.last_link.t_sync
+                solver.add(s.ot + s.deadline >= var[s][s.last_link]["phi"]+ var[s][s.last_link]["trans"] + s.last_link.t_sync)
             else:
 
                 solver.add(
@@ -225,6 +225,8 @@ class e_tsn:
                             release + k * s.period,
                             release + k * s.period + var[s][l]["trans"],
                             lcm,
+                            s._id,
+                            s.shareOrET,
                         ]
                     )
         return utils.GCL(gcl)
