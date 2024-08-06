@@ -1,4 +1,6 @@
 ## TSNkit & E-TSN
+[E-TSN](chrome-extension://bocbaocobfecmglnmeaeppambideimao/pdf/viewer.html?file=https%3A%2F%2Fpeople.gix.tsinghua.edu.cn%2Fdangfan%2Fpublication%2Ficdcs22-etsn%2Ficdcs22-etsn.pdf)
+
 E-TSN proposes to use TSN network to schedule events to trigger data flow ET, and proposes three innovative methods to solve the difficulty of ET scheduling, which is that the **occurrence time is unpredictable** , which are probabilistic flow modeling, preferential time slot sharing and cautious time slot reservation.
 ### 1. Probabilistic stream
 The minimum occurrence interval of ET streams is divided into several probabilistic streams, and the delay of each probabilistic stream is delay-T/N, and the probabilistic streams are written into the scheduling task, and these probabilistic streams need to be scheduled, but unlike TT stream scheduling, probability streams from the same ET stream can overlap in the same time interval.
