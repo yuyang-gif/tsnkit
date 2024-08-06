@@ -62,6 +62,8 @@ class GCL(list):
                 int(row[2]),
                 int(row[3]),
                 int(row[4]),
+                int(row[5]),
+                str(row[6]),
             ]
         return True
 
@@ -95,13 +97,13 @@ class GCL(list):
             if not isinstance(item[0], (tuple, Link)):
                 warnings.warn("Invalid link type in GCL")
                 return False
-            if len(item) != 5:
+            if len(item) != 7:
                 return False
         return True
 
     def to_csv(self, path: str) -> None:
         result = pd.DataFrame(self)
-        result.columns = ["link", "queue", "start", "end", "cycle"]  # type: ignore
+        result.columns = ["link", "queue", "start", "end", "cycle","id","shareOrET"]  # type: ignore
         result = result.sort_values(by=["link", "queue"])
         result.to_csv(path, index=False)
 
@@ -331,6 +333,8 @@ class Config:
         self.route: Union[None, Route] = None
         self._delay: Union[None, Delay] = None
         self._size: Union[None, Size] = None
+        self._id: Union[None, id] = None
+        self._shareOrET: Union[None, shareOrET] = None
 
     def to_csv(self, name, path):
         if not self.gcl:
@@ -350,6 +354,7 @@ class Config:
             self._delay.to_csv(path + name + "-DELAY.csv")
         if self._size:
             self._size.to_csv(path + name + "-SIZE.csv")
+        
 
 
 if __name__ == "__main__":
