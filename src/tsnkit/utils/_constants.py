@@ -6,8 +6,8 @@ Created:  2023-10-21T02:24:36.212Z
 """
 
 ## Model / algorithm assumptions
-T_SLOT = 100  ## Use 120 * 60 ns to apply on TTTech TSN board
-T_PROC = 2000
+T_SLOT = 1 ## Use 120 * 60 ns to apply on TTTech TSN board
+T_PROC = 0
 T_M = int(1e16)
 E_SYNC = 0
 MAX_NUM_QUEUE = 8
