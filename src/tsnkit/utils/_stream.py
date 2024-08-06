@@ -16,6 +16,8 @@ import pandas as pd
 import numpy as np
 import warnings
 
+N = 2
+
 
 def load_stream(path: str) -> "StreamSet":
     stream_set = StreamSet() # 概率流建模存储
@@ -49,12 +51,10 @@ def load_stream(path: str) -> "StreamSet":
                 row["ot"],
             )
         )
-    for s in stream_set:
-        print(s)
     stream_set1 = StreamSet()
     for s in stream_set:
         if s.s_type == "Prob":
-            for i in range(0,int(s.period/10000)):
+            for i in range(0,N):
                 stream_set1._streams.append(
                     Stream(
                     count,
@@ -62,12 +62,12 @@ def load_stream(path: str) -> "StreamSet":
                     [s.dst],
                     s.size,
                     s.period,
-                    s.deadline,
+                    s.deadline-s.period/N,
                     s.jitter,
                     s.pro,
                     s.s_type,
                     str(s._id),
-                    s.ot+i*10000,
+                    s.ot+i*(s.period/N),
                 )
                 )
                 count += 1
@@ -89,7 +89,18 @@ def load_stream(path: str) -> "StreamSet":
             )
             count += 1
     for s in stream_set1:
-        print(s)
+        print([s._id,
+                    s.src,
+                    [s.dst],
+                    s.size,
+                    s.period,
+                    s.deadline,
+                    s.jitter,
+                    s.pro,
+                    s.s_type,
+                    s.shareOrET,
+                    s.ot])
+        
     stream_set1._lcm = np.lcm.reduce([stream._period for stream in stream_set1._streams])
     ## Sort streams by its ID
     stream_set1._streams.sort(key=lambda x: x._id, reverse=False)
