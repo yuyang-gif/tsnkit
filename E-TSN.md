@@ -43,7 +43,7 @@ Finally, the algorithm needs to meet the scheduling time slot of the TT flow.
 ```python
 add_frame_const
 add_flow_trans_const
-add_delay_const
+add_delay_const(delay should be set 5T-5T/N)
 add_link_const
 add_queue_range_const
 add_frame_isolation_const
